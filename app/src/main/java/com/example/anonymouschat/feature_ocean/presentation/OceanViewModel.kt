@@ -4,14 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.anonymouschat.core.model.Drift
 import com.example.anonymouschat.data.DataRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
+import com.example.anonymouschat.data.DefaultDataRepository
+
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
-import javax.inject.Inject
+
 
 /**
  * Holds the state for the Ocean screen — the main drift feed.
@@ -53,9 +54,8 @@ sealed interface OceanEvent {
 /**
  * ViewModel for the Ocean screen managing drifts state and user actions.
  */
-@HiltViewModel
-class OceanViewModel @Inject constructor(
-    private val repository: DataRepository
+class OceanViewModel(
+    private val repository: DataRepository = DefaultDataRepository()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OceanUiState())

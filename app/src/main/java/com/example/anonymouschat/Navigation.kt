@@ -50,7 +50,7 @@ fun MainNavigation() {
         // A Pocket — ephemeral private chat
         composable("pocket/{driftId}") { backStackEntry ->
             val driftId = backStackEntry.arguments?.getString("driftId") ?: return@composable
-            PocketScreen(
+            PocketScreen(driftId = driftId,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

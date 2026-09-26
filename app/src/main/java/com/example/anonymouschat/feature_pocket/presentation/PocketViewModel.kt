@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.anonymouschat.core.model.Message
 import com.example.anonymouschat.data.DataRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
+
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
-import javax.inject.Inject
+
 
 /**
  * UI state for a Pocket conversation.
@@ -37,13 +37,23 @@ sealed interface PocketEvent {
 /**
  * ViewModel managing the lifecycle and state of a Pocket conversation.
  */
-@HiltViewModel
-class PocketViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
-    private val repository: DataRepository
+
+import androidx.lifecycle.ViewModelProvider
+import com.example.anonymouschat.data.DefaultDataRepository
+
+class PocketViewModel (
+    private val driftId: String,
+    private val repository: DataRepository = DefaultDataRepository()
 ) : ViewModel() {
 
-    private val driftId: String = savedStateHandle.get<String>("driftId") ?: ""
+    class Factory(private val driftId: String) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            return PocketViewModel(driftId) as T
+        }
+    }
+
+    
 
     private val _uiState = MutableStateFlow(PocketUiState())
     val uiState: StateFlow<PocketUiState> = _uiState.asStateFlow()

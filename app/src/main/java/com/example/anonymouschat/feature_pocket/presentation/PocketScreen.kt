@@ -47,7 +47,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.anonymouschat.core.ui.OxygenRing
 
@@ -60,9 +60,9 @@ import com.example.anonymouschat.core.ui.OxygenRing
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PocketScreen(
+fun PocketScreen(driftId: String,
     onNavigateBack: () -> Unit,
-    viewModel: PocketViewModel = hiltViewModel()
+    viewModel: PocketViewModel = viewModel(factory = PocketViewModel.Factory(driftId))
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var messageText by remember { mutableStateOf("") }

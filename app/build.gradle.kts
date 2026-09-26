@@ -2,8 +2,8 @@ plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.compose.compiler)
   alias(libs.plugins.kotlin.serialization)
-  alias(libs.plugins.hilt)
-  alias(libs.plugins.ksp)
+  
+  
   alias(libs.plugins.google.services)
 }
 
@@ -82,11 +82,11 @@ dependencies {
 
   // Navigation
   implementation(libs.androidx.navigation.compose)
-  implementation(libs.androidx.hilt.navigation.compose)
+  
 
   // Hilt
-  implementation(libs.hilt.android)
-  ksp(libs.hilt.compiler)
+  
+  
 
   // Firebase
   implementation(platform(libs.firebase.bom))
