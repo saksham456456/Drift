@@ -1,12 +1,15 @@
 package com.example.anonymouschat.feature_ocean.presentation
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.anonymouschat.core.model.Drift
+import com.example.anonymouschat.data.DataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
@@ -51,14 +54,21 @@ sealed interface OceanEvent {
  * ViewModel for the Ocean screen managing drifts state and user actions.
  */
 @HiltViewModel
-class OceanViewModel @Inject constructor() : ViewModel() {
+class OceanViewModel @Inject constructor(
+    private val repository: DataRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OceanUiState())
     val uiState: StateFlow<OceanUiState> = _uiState.asStateFlow()
 
     init {
-        // Load mock drifts for now (will be replaced with Firebase later)
-        loadMockDrifts()
+        // Sign in anonymously and subscribe to live Drifts
+        viewModelScope.launch {
+            repository.signInAnonymously()
+            repository.getDrifts().collect { liveDrifts ->
+                _uiState.update { it.copy(drifts = liveDrifts) }
+            }
+        }
     }
 
     /** Processes UI events following Unidirectional Data Flow. */
@@ -71,7 +81,7 @@ class OceanViewModel @Inject constructor() : ViewModel() {
     }
 
     private fun handleCatchDrift(drift: Drift) {
-        // TODO: Create a Pocket and navigate to PocketScreen
+        // Handled via UI navigation, but could increment catch count here later
     }
 
     private fun handleReleaseDrift(text: String) {
@@ -79,32 +89,18 @@ class OceanViewModel @Inject constructor() : ViewModel() {
         val newDrift = Drift(
             id = UUID.randomUUID().toString(),
             text = text.trim(),
-            authorId = "local_user", // Will use Firebase UID later
             timestamp = System.currentTimeMillis()
         )
-        _uiState.update { state ->
-            state.copy(
-                drifts = listOf(newDrift) + state.drifts,
-                showReleaseDriftSheet = false
-            )
+        
+        // Optimistically hide the sheet
+        _uiState.update { it.copy(showReleaseDriftSheet = false) }
+        
+        viewModelScope.launch {
+            repository.releaseDrift(newDrift)
         }
     }
 
     private fun toggleSheet() {
         _uiState.update { it.copy(showReleaseDriftSheet = !it.showReleaseDriftSheet) }
-    }
-
-    private fun loadMockDrifts() {
-        val mocks = listOf(
-            Drift(id = "1", text = "Does anyone else feel like they're just pretending to have it together?", authorId = "a1"),
-            Drift(id = "2", text = "The 3am sky hits different when you have no one to text.", authorId = "a2"),
-            Drift(id = "3", text = "I quit my job today. No backup plan. Terrified but alive.", authorId = "a3"),
-            Drift(id = "4", text = "Sometimes I write letters to people I'll never send them to.", authorId = "a4"),
-            Drift(id = "5", text = "What if we're all just strangers pretending we aren't lonely?", authorId = "a5"),
-            Drift(id = "6", text = "I heard a song today that made me miss someone who doesn't exist yet.", authorId = "a6"),
-            Drift(id = "7", text = "Is it weird that I feel more honest talking to strangers than to my best friend?", authorId = "a7"),
-            Drift(id = "8", text = "I've been sitting in my car for 20 minutes. I just don't want to go inside yet.", authorId = "a8")
-        )
-        _uiState.update { it.copy(drifts = mocks) }
     }
 }

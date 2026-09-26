@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.anonymouschat.core.model.Message
+import com.example.anonymouschat.data.DataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -38,7 +39,8 @@ sealed interface PocketEvent {
  */
 @HiltViewModel
 class PocketViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    private val repository: DataRepository
 ) : ViewModel() {
 
     private val driftId: String = savedStateHandle.get<String>("driftId") ?: ""
@@ -55,6 +57,14 @@ class PocketViewModel @Inject constructor(
         // Load the origin drift text (mock for now)
         _uiState.update { it.copy(originDriftText = "A thought you caught from the ocean...") }
         startOxygenCountdown()
+        
+        // Listen to live messages
+        viewModelScope.launch {
+            repository.getPocketMessages(driftId).collect { liveMsgs ->
+                _uiState.update { it.copy(messages = liveMsgs) }
+                refreshOxygen() // Reset oxygen on any new message
+            }
+        }
     }
 
     /** Processes UI events following Unidirectional Data Flow. */
@@ -72,12 +82,11 @@ class PocketViewModel @Inject constructor(
         val message = Message(
             id = UUID.randomUUID().toString(),
             pocketId = driftId,
-            senderId = "local_user",
             text = text.trim()
         )
 
-        _uiState.update { state ->
-            state.copy(messages = state.messages + message)
+        viewModelScope.launch {
+            repository.sendMessage(message)
         }
 
         // Refresh oxygen — activity extends the conversation
