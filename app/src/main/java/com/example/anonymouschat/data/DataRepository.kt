@@ -9,8 +9,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
-import javax.inject.Inject
-import javax.inject.Singleton
+
+
 
 interface DataRepository {
     suspend fun signInAnonymously(): String?
@@ -20,8 +20,8 @@ interface DataRepository {
     suspend fun sendMessage(message: Message)
 }
 
-@Singleton
-class DefaultDataRepository @Inject constructor() : DataRepository {
+
+class DefaultDataRepository  : DataRepository {
     
     private val auth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabase.getInstance()

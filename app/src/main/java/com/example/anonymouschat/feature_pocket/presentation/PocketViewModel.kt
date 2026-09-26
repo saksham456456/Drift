@@ -1,3 +1,5 @@
+import androidx.lifecycle.ViewModelProvider
+import com.example.anonymouschat.data.DefaultDataRepository
 package com.example.anonymouschat.feature_pocket.presentation
 
 import androidx.lifecycle.SavedStateHandle
@@ -38,8 +40,6 @@ sealed interface PocketEvent {
  * ViewModel managing the lifecycle and state of a Pocket conversation.
  */
 
-import androidx.lifecycle.ViewModelProvider
-import com.example.anonymouschat.data.DefaultDataRepository
 
 class PocketViewModel (
     private val driftId: String,
