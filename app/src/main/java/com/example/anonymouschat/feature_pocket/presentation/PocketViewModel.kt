@@ -1,6 +1,6 @@
+package com.example.anonymouschat.feature_pocket.presentation
 import androidx.lifecycle.ViewModelProvider
 import com.example.anonymouschat.data.DefaultDataRepository
-package com.example.anonymouschat.feature_pocket.presentation
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -137,3 +137,4 @@ class PocketViewModel (
         _uiState.update { it.copy(showConstellationPrompt = false) }
     }
 }
+
