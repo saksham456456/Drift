@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { database } from '../firebase';
+﻿import { create } from 'zustand';
+import { db } from '../firebase';
 import { ref, onValue, push, set, update, get } from 'firebase/database';
 
 export interface Chat {
@@ -36,7 +36,7 @@ export const useChatStore = create<ChatStore>((setZustand) => ({
   setActiveChat: (chatId) => setZustand({ activeChatId: chatId }),
 
   listenToChats: (uid: string) => {
-    const chatsRef = ref(database, 'chats');
+    const chatsRef = ref(db, 'chats');
     
     const unsubscribe = onValue(chatsRef, async (snapshot) => {
       const data = snapshot.val();
@@ -61,7 +61,7 @@ export const useChatStore = create<ChatStore>((setZustand) => ({
             if (otherId) {
               chat.otherParticipantId = otherId;
               try {
-                const userRef = ref(database, `users/${otherId}`);
+                const userRef = ref(db, `users/${otherId}`);
                 const userSnap = await get(userRef);
                 if (userSnap.exists()) {
                   chat.otherParticipantName = userSnap.val().displayName;
@@ -83,7 +83,7 @@ export const useChatStore = create<ChatStore>((setZustand) => ({
   },
 
   listenToMessages: (chatId: string) => {
-    const messagesRef = ref(database, `messages/${chatId}`);
+    const messagesRef = ref(db, `messages/${chatId}`);
     
     const unsubscribe = onValue(messagesRef, (snapshot) => {
       const data = snapshot.val();
@@ -107,7 +107,7 @@ export const useChatStore = create<ChatStore>((setZustand) => ({
   },
 
   sendMessage: async (chatId: string, text: string, senderId: string) => {
-    const messagesRef = ref(database, `messages/${chatId}`);
+    const messagesRef = ref(db, `messages/${chatId}`);
     const newMsgRef = push(messagesRef);
     const timestamp = Date.now();
     
@@ -117,7 +117,7 @@ export const useChatStore = create<ChatStore>((setZustand) => ({
       timestamp
     });
 
-    const chatRef = ref(database, `chats/${chatId}`);
+    const chatRef = ref(db, `chats/${chatId}`);
     await update(chatRef, {
       lastMessage: text,
       lastMessageTime: timestamp
@@ -147,7 +147,7 @@ export const useChatStore = create<ChatStore>((setZustand) => ({
   },
 
   markAsRead: async (chatId: string, uid: string) => {
-    const chatParticipantRef = ref(database, `chats/${chatId}/participants`);
+    const chatParticipantRef = ref(db, `chats/${chatId}/participants`);
     const updates: Record<string, any> = {};
     updates[uid] = 0;
     await update(chatParticipantRef, updates);
