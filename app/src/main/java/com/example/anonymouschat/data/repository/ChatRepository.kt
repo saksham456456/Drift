@@ -81,7 +81,10 @@ class ChatRepository {
 
         chat?.participants?.forEach { (uid, count) ->
             if (uid != message.senderUid) {
-                chatUpdates["participants/$uid"] = count + 1L
+                val baseCount = if (count < 0L) 0L else count
+                chatUpdates["participants/$uid"] = baseCount + 1L
+            } else if (count < 0L) {
+                chatUpdates["participants/$uid"] = 0L // unhide for sender if they were hidden
             }
         }
 
@@ -98,11 +101,18 @@ class ChatRepository {
         
         // This is a naive check. A robust check would involve querying where participants contain both.
         // For simplicity, we query where participants contain currentUid and check locally for otherUid.
-        val snapshot = chatsRef.orderByChild("participants/$currentUid").startAt(0.0).get().await()
+        // Using -1.0 to include hidden/deleted chats.
+        val snapshot = chatsRef.orderByChild("participants/$currentUid").startAt(-1.0).get().await()
         
         for (child in snapshot.children) {
             val chat = child.getValue(Chat::class.java)
             if (chat != null && chat.type == "direct" && chat.participants.containsKey(otherUid)) {
+                if (chat.participants[currentUid] == -1L) {
+                    chatsRef.child("${child.key}/participants/$currentUid").setValue(0L).await()
+                }
+                if (chat.participants[otherUid] == -1L) {
+                    chatsRef.child("${child.key}/participants/$otherUid").setValue(0L).await()
+                }
                 return@withContext child.key ?: ""
             }
         }
@@ -182,9 +192,9 @@ class ChatRepository {
         val chat = chatSnapshot.getValue(Chat::class.java) ?: return@withContext
 
         val updatedParticipants = chat.participants.toMutableMap()
-        updatedParticipants.remove(currentUid)
+        updatedParticipants[currentUid] = -1L
 
-        if (updatedParticipants.isEmpty()) {
+        if (updatedParticipants.values.all { it == -1L }) {
             chatRef.removeValue().await()
             database.getReference("messages/$chatId").removeValue().await()
         } else {
