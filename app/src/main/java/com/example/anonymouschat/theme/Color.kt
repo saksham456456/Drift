@@ -2,10 +2,18 @@ package com.example.anonymouschat.theme
 
 import androidx.compose.ui.graphics.Color
 
-val DarkBackground = Color(0xFF121212)
-val DarkSurface = Color(0xFF1E1E1E)
-val PrimaryNeon = Color(0xFF00E676)
-val PrimaryVariant = Color(0xFF00C853)
-val OnDark = Color(0xFFE0E0E0)
-val ChatBubbleSelf = Color(0xFF2E7D32)
-val ChatBubbleOther = Color(0xFF333333)
+// Primary brand colors
+val Blue500 = Color(0xFF2196F3)
+val Blue700 = Color(0xFF1976D2)
+val Blue100 = Color(0xFFBBDEFB)
+
+// Neutral colors
+val White = Color(0xFFFFFFFF)
+val Background = Color(0xFFFAFAFA)
+val Surface = Color(0xFFFFFFFF)
+val OnSurface = Color(0xFF1A1A1A)
+val TextSecondary = Color(0xFF888888)
+val Divider = Color(0xFFEEEEEE)
+val ChatBubbleOther = Color(0xFFF0F0F0)
+val ChatBubbleSelf = Color(0xFF2196F3)
+val OnlineGreen = Color(0xFF4CAF50)
