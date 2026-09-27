@@ -42,6 +42,23 @@ class LoginViewModel : ViewModel() {
         }
     }
 
+    fun resetPassword(username: String) {
+        if (username.isBlank()) {
+            _uiState.value = LoginUiState.Error("Please enter your username first")
+            return
+        }
+
+        _uiState.value = LoginUiState.Loading
+        viewModelScope.launch {
+            val result = authRepository.sendPasswordResetEmail(username)
+            if (result.isSuccess) {
+                _uiState.value = LoginUiState.PasswordResetSent
+            } else {
+                _uiState.value = LoginUiState.Error(result.exceptionOrNull()?.message ?: "Failed to send reset email")
+            }
+        }
+    }
+
     fun resetState() {
         _uiState.value = LoginUiState.Idle
     }
@@ -51,6 +68,7 @@ sealed class LoginUiState {
     object Idle : LoginUiState()
     object Loading : LoginUiState()
     object Success : LoginUiState()
+    object PasswordResetSent : LoginUiState()
     data class Error(val message: String) : LoginUiState()
 }
 
@@ -69,6 +87,10 @@ fun LoginScreen(
         when (uiState) {
             is LoginUiState.Success -> {
                 onLoginSuccess()
+                viewModel.resetState()
+            }
+            is LoginUiState.PasswordResetSent -> {
+                snackbarHostState.showSnackbar("Password reset email sent")
                 viewModel.resetState()
             }
             is LoginUiState.Error -> {
@@ -131,6 +153,13 @@ fun LoginScreen(
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation()
                     )
+
+                    TextButton(
+                        onClick = { viewModel.resetPassword(username) },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("Forgot Password?")
+                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 

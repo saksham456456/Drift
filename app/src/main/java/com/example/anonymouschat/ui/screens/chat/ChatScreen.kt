@@ -30,6 +30,10 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+
 class ChatViewModel(
     private val chatId: String
 ) : ViewModel() {
@@ -41,6 +45,9 @@ class ChatViewModel(
 
     private val _currentUserId = MutableStateFlow<String?>(null)
     val currentUserId: StateFlow<String?> = _currentUserId.asStateFlow()
+
+    private val _otherUserStatus = MutableStateFlow<String>("")
+    val otherUserStatus: StateFlow<String> = _otherUserStatus.asStateFlow()
 
     private var currentUserDisplayName: String = "Anonymous"
 
@@ -55,6 +62,35 @@ class ChatViewModel(
                 } catch (e: Exception) {
                     // Ignore or log
                 }
+            }
+            
+            // Fetch other user status
+            viewModelScope.launch {
+                try {
+                    val chatSnapshot = FirebaseDatabase.getInstance().getReference("chats/$chatId").get().await()
+                    val chat = chatSnapshot.getValue(com.example.anonymouschat.data.model.Chat::class.java)
+                    if (chat != null && chat.type == "direct") {
+                        val otherUid = chat.participants.keys.find { it != uid }
+                        if (otherUid != null) {
+                            FirebaseDatabase.getInstance().getReference("users/$otherUid/lastSeen")
+                                .addValueEventListener(object : com.google.firebase.database.ValueEventListener {
+                                    override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                                        val lastSeen = snapshot.getValue(Long::class.java) ?: 0L
+                                        if (lastSeen == -1L) {
+                                            _otherUserStatus.value = "Online"
+                                        } else if (lastSeen > 0L) {
+                                            val date = java.util.Date(lastSeen)
+                                            val format = java.text.SimpleDateFormat("MMM dd, HH:mm", java.util.Locale.getDefault())
+                                            _otherUserStatus.value = "Last seen ${format.format(date)}"
+                                        } else {
+                                            _otherUserStatus.value = "Offline"
+                                        }
+                                    }
+                                    override fun onCancelled(error: com.google.firebase.database.DatabaseError) {}
+                                })
+                        }
+                    }
+                } catch (e: Exception) {}
             }
         }
 
@@ -106,6 +142,7 @@ fun ChatScreen(
 ) {
     val messages by viewModel.messages.collectAsState()
     val currentUserId by viewModel.currentUserId.collectAsState()
+    val otherUserStatus by viewModel.otherUserStatus.collectAsState()
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 
@@ -118,7 +155,18 @@ fun ChatScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = chatName) },
+                title = { 
+                    Column {
+                        Text(text = chatName)
+                        if (otherUserStatus.isNotEmpty()) {
+                            Text(
+                                text = otherUserStatus,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (otherUserStatus == "Online") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -138,6 +186,7 @@ fun ChatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .imePadding()
         ) {
             LazyColumn(
                 state = listState,
@@ -182,6 +231,15 @@ fun ChatScreen(
                         placeholder = { Text("Type a message...") },
                         shape = RoundedCornerShape(24.dp),
                         maxLines = 4,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(
+                            onSend = {
+                                if (inputText.isNotBlank()) {
+                                    viewModel.sendMessage(inputText.trim())
+                                    inputText = ""
+                                }
+                            }
+                        ),
                         colors = OutlinedTextFieldDefaults.colors(
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),

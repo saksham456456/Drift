@@ -40,7 +40,7 @@ class SignUpViewModel : ViewModel() {
     private var checkUsernameJob: Job? = null
 
     fun checkUsername(username: String) {
-        if (username.length < 3) {
+        if (!username.matches("^[a-zA-Z0-9_]{3,15}$".toRegex())) {
             _usernameAvailability.value = UsernameAvailability.Idle
             return
         }
@@ -115,6 +115,10 @@ fun SignUpScreen(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     
+    val isUsernameValid by remember(username) { derivedStateOf { username.matches("^[a-zA-Z0-9_]{3,15}$".toRegex()) } }
+    val isPasswordValid by remember(password) { derivedStateOf { password.length >= 6 } }
+    val isDisplayNameValid by remember(displayName) { derivedStateOf { displayName.isNotBlank() } }
+    
     val uiState by viewModel.uiState.collectAsState()
     val usernameAvailability by viewModel.usernameAvailability.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -179,7 +183,13 @@ fun SignUpScreen(
                         onValueChange = { displayName = it },
                         label = { Text("Display Name") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        isError = displayName.isNotEmpty() && !isDisplayNameValid,
+                        supportingText = {
+                            if (displayName.isNotEmpty() && !isDisplayNameValid) {
+                                Text("Display name cannot be blank")
+                            }
+                        }
                     )
 
                     OutlinedTextField(
@@ -191,6 +201,14 @@ fun SignUpScreen(
                         label = { Text("Username") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
+                        isError = (username.isNotEmpty() && !isUsernameValid) || usernameAvailability == UsernameAvailability.Unavailable,
+                        supportingText = {
+                            if (username.isNotEmpty() && !isUsernameValid) {
+                                Text("Username must be 3-15 characters, alphanumeric/underscores")
+                            } else if (usernameAvailability == UsernameAvailability.Unavailable) {
+                                Text("Username is not available")
+                            }
+                        },
                         trailingIcon = {
                             when (usernameAvailability) {
                                 is UsernameAvailability.Checking -> {
@@ -216,7 +234,13 @@ fun SignUpScreen(
                         label = { Text("Password") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        visualTransformation = PasswordVisualTransformation()
+                        visualTransformation = PasswordVisualTransformation(),
+                        isError = password.isNotEmpty() && !isPasswordValid,
+                        supportingText = {
+                            if (password.isNotEmpty() && !isPasswordValid) {
+                                Text("Password must be at least 6 characters")
+                            }
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -224,7 +248,11 @@ fun SignUpScreen(
                     Button(
                         onClick = { viewModel.signUp(username, password, displayName) },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = uiState !is SignUpUiState.Loading && usernameAvailability == UsernameAvailability.Available,
+                        enabled = uiState !is SignUpUiState.Loading && 
+                                  isUsernameValid && 
+                                  isPasswordValid && 
+                                  isDisplayNameValid && 
+                                  usernameAvailability == UsernameAvailability.Available,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         )

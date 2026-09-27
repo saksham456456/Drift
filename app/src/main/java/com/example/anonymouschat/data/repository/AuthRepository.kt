@@ -46,6 +46,16 @@ class AuthRepository {
         }
     }
 
+    suspend fun sendPasswordResetEmail(username: String): Result<Unit> {
+        return try {
+            val email = "${username}@drift.app"
+            auth.sendPasswordResetEmail(email).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     fun getCurrentUid(): String? {
         return auth.currentUser?.uid
     }

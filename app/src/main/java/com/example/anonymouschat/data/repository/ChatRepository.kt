@@ -151,10 +151,28 @@ class ChatRepository {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val connected = snapshot.getValue(Boolean::class.java) ?: false
                 if (connected) {
+                    lastSeenRef.setValue(-1L)
                     lastSeenRef.onDisconnect().setValue(ServerValue.TIMESTAMP)
                 }
             }
             override fun onCancelled(error: DatabaseError) {}
         })
+    }
+
+    suspend fun deleteChat(chatId: String) = withContext(Dispatchers.IO) {
+        val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return@withContext
+        val chatRef = database.getReference("chats/$chatId")
+        val chatSnapshot = chatRef.get().await()
+        val chat = chatSnapshot.getValue(Chat::class.java) ?: return@withContext
+
+        val updatedParticipants = chat.participants.toMutableMap()
+        updatedParticipants.remove(currentUid)
+
+        if (updatedParticipants.isEmpty()) {
+            chatRef.removeValue().await()
+            database.getReference("messages/$chatId").removeValue().await()
+        } else {
+            chatRef.child("participants").setValue(updatedParticipants).await()
+        }
     }
 }

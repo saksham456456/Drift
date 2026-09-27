@@ -1,11 +1,14 @@
 package com.example.anonymouschat.ui.screens.chatlist
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
@@ -81,6 +84,12 @@ class ChatListViewModel : ViewModel() {
             }
         }
     }
+
+    fun deleteChat(chatId: String) {
+        viewModelScope.launch {
+            chatRepository.deleteChat(chatId)
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -137,10 +146,56 @@ fun ChatListScreen(
                         items = chats,
                         key = { it.chatId }
                     ) { chat ->
-                        ChatListItemRow(
-                            chat = chat,
-                            onClick = { onChatTapped(chat.chatId, chat.displayName) }
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = {
+                                if (it == SwipeToDismissBoxValue.EndToStart) {
+                                    viewModel.deleteChat(chat.chatId)
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
                         )
+
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            enableDismissFromStartToEnd = false,
+                            backgroundContent = {
+                                val color by animateColorAsState(
+                                    when (dismissState.targetValue) {
+                                        SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                        else -> MaterialTheme.colorScheme.background
+                                    }, label = "ColorAnimation"
+                                )
+                                val iconTint by animateColorAsState(
+                                    when (dismissState.targetValue) {
+                                        SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.onErrorContainer
+                                        else -> MaterialTheme.colorScheme.onBackground
+                                    }, label = "IconColorAnimation"
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(color)
+                                        .padding(horizontal = 20.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Delete,
+                                        contentDescription = "Delete",
+                                        tint = iconTint
+                                    )
+                                }
+                            },
+                            content = {
+                                ChatListItemRow(
+                                    chat = chat,
+                                    onClick = { onChatTapped(chat.chatId, chat.displayName) },
+                                    modifier = Modifier.background(MaterialTheme.colorScheme.background)
+                                )
+                            }
+                        )
+
                         HorizontalDivider(
                             modifier = Modifier.padding(start = 76.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
@@ -155,14 +210,15 @@ fun ChatListScreen(
 @Composable
 fun ChatListItemRow(
     chat: ChatListItem,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val timeFormatted = remember(chat.lastMessageTime) {
         formatTimestamp(chat.lastMessageTime)
     }
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
