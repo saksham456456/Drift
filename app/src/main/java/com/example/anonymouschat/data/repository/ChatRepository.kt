@@ -19,7 +19,7 @@ class ChatRepository {
     private val database = FirebaseDatabase.getInstance()
 
     fun getChats(uid: String): Flow<List<Chat>> = callbackFlow {
-        val query = database.getReference("chats").orderByChild("participants/$uid").equalTo(true)
+        val query = database.getReference("chats").orderByChild("participants/$uid").startAt(0.0)
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val chats = mutableListOf<Chat>()

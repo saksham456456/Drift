@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
@@ -97,6 +98,7 @@ class ChatListViewModel : ViewModel() {
 fun ChatListScreen(
     onChatTapped: (chatId: String, chatName: String) -> Unit,
     onSearchTapped: () -> Unit,
+    onCreateGroupTapped: () -> Unit,
     onSettingsTapped: () -> Unit,
     viewModel: ChatListViewModel = viewModel()
 ) {
@@ -108,6 +110,9 @@ fun ChatListScreen(
             TopAppBar(
                 title = { Text("Drift", fontWeight = FontWeight.Bold) },
                 actions = {
+                    IconButton(onClick = onCreateGroupTapped) {
+                        Icon(Icons.Outlined.GroupAdd, contentDescription = "Create Group")
+                    }
                     IconButton(onClick = onSearchTapped) {
                         Icon(Icons.Outlined.PersonAdd, contentDescription = "Add/Search")
                     }
