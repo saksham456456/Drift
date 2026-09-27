@@ -57,7 +57,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
             
             AvatarCircle(
-                name = currentUser?.displayName ?: "User",
+                displayName = currentUser?.displayName ?: "User",
                 size = 100.dp
             )
             
@@ -205,7 +205,7 @@ class SettingsViewModel(
 
     private fun loadUser() {
         viewModelScope.launch {
-            val uid = authRepository.getCurrentUserId()
+            val uid = authRepository.getCurrentUid()
             if (uid != null) {
                 try {
                     val snapshot = FirebaseDatabase.getInstance().getReference("users").child(uid).get().await()
@@ -220,7 +220,7 @@ class SettingsViewModel(
 
     fun updateDisplayName(newName: String) {
         viewModelScope.launch {
-            val uid = authRepository.getCurrentUserId()
+            val uid = authRepository.getCurrentUid()
             if (uid != null) {
                 try {
                     FirebaseDatabase.getInstance().getReference("users")

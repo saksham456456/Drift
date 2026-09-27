@@ -29,7 +29,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun AnonymousChatTheme(
+fun DriftTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = LightColorScheme

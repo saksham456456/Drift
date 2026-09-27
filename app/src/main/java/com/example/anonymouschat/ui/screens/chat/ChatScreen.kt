@@ -22,7 +22,7 @@ import com.example.anonymouschat.data.model.Message
 import com.example.anonymouschat.data.repository.AuthRepository
 import com.example.anonymouschat.data.repository.ChatRepository
 import com.example.anonymouschat.ui.components.ChatBubble
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,7 +35,6 @@ class ChatViewModel(
 ) : ViewModel() {
     private val chatRepository = ChatRepository()
     private val authRepository = AuthRepository()
-    private val firestore = FirebaseFirestore.getInstance()
 
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
     val messages: StateFlow<List<Message>> = _messages.asStateFlow()
@@ -46,13 +45,13 @@ class ChatViewModel(
     private var currentUserDisplayName: String = "Anonymous"
 
     init {
-        val uid = authRepository.getCurrentUserId()
+        val uid = authRepository.getCurrentUid()
         _currentUserId.value = uid
         if (uid != null) {
             viewModelScope.launch {
                 try {
-                    val docSnapshot = firestore.collection("users").document(uid).get().await()
-                    currentUserDisplayName = docSnapshot.getString("displayName") ?: "Anonymous"
+                    currentUserDisplayName = FirebaseDatabase.getInstance().getReference("users").child(uid).child("displayName")
+                        .get().await().getValue(String::class.java) ?: "Anonymous"
                 } catch (e: Exception) {
                     // Ignore or log
                 }
@@ -77,10 +76,9 @@ class ChatViewModel(
         viewModelScope.launch {
             val message = Message(
                 id = "", 
-                chatId = chatId,
-                senderId = uid,
+                text = text,
+                senderUid = uid,
                 senderName = currentUserDisplayName,
-                content = text,
                 timestamp = System.currentTimeMillis()
             )
             chatRepository.sendMessage(chatId, message)
@@ -153,10 +151,12 @@ fun ChatScreen(
                     items = messages,
                     key = { it.id.ifEmpty { it.timestamp.toString() } }
                 ) { message ->
-                    val isOwnMessage = message.senderId == currentUserId
+                    val isOwnMessage = message.senderUid == currentUserId
                     ChatBubble(
-                        message = message,
+                        message = message.text,
+                        senderName = message.senderName,
                         isOwnMessage = isOwnMessage,
+                        timestamp = message.timestamp,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)

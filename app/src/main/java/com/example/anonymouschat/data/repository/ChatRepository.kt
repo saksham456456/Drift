@@ -15,9 +15,8 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
-class ChatRepository(
-    private val database: FirebaseDatabase
-) {
+class ChatRepository {
+    private val database = FirebaseDatabase.getInstance()
 
     fun getChats(uid: String): Flow<List<Chat>> = callbackFlow {
         val query = database.getReference("chats").orderByChild("participants/$uid").equalTo(true)

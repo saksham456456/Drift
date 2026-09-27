@@ -23,7 +23,7 @@ import com.example.anonymouschat.data.repository.AuthRepository
 import com.example.anonymouschat.data.repository.ChatRepository
 import com.example.anonymouschat.ui.components.AvatarCircle
 import com.example.anonymouschat.ui.components.EmptyState
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -41,7 +41,6 @@ data class ChatListItem(
 class ChatListViewModel : ViewModel() {
     private val authRepository = AuthRepository()
     private val chatRepository = ChatRepository()
-    private val firestore = FirebaseFirestore.getInstance()
 
     private val _chats = MutableStateFlow<List<ChatListItem>>(emptyList())
     val chats: StateFlow<List<ChatListItem>> = _chats.asStateFlow()
@@ -51,17 +50,17 @@ class ChatListViewModel : ViewModel() {
     }
 
     private fun loadChats() {
-        val uid = authRepository.getCurrentUserId() ?: return
+        val uid = authRepository.getCurrentUid() ?: return
         viewModelScope.launch {
             chatRepository.getChats(uid).collect { chatModels ->
                 val list = chatModels.map { chat ->
                     var displayName = "Unknown"
                     if (chat.type == "direct") {
-                        val otherUid = chat.participantIds.find { it != uid }
+                        val otherUid = chat.participants.keys.find { it != uid }
                         if (otherUid != null) {
                             try {
-                                val userDoc = firestore.collection("users").document(otherUid).get().await()
-                                displayName = userDoc.getString("displayName") ?: "Unknown User"
+                                displayName = FirebaseDatabase.getInstance().getReference("users").child(otherUid).child("displayName")
+                                    .get().await().getValue(String::class.java) ?: "Unknown User"
                             } catch (e: Exception) {
                                 // Ignore error and use default
                             }
@@ -127,7 +126,7 @@ fun ChatListScreen(
                 EmptyState(
                     icon = Icons.Outlined.Chat,
                     title = "No conversations yet",
-                    message = "Search for someone to start chatting",
+                    subtitle = "Search for someone to start chatting",
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else {
@@ -170,9 +169,8 @@ fun ChatListItemRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         AvatarCircle(
-            name = chat.displayName,
-            size = 52.dp,
-            onClick = { /* Do nothing here */ }
+            displayName = chat.displayName,
+            size = 52.dp
         )
         
         Spacer(modifier = Modifier.width(16.dp))

@@ -100,7 +100,7 @@ fun UserResultItem(user: User, onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AvatarCircle(name = user.displayName, size = 48.dp)
+        AvatarCircle(displayName = user.displayName, size = 48.dp)
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             Text(text = user.displayName, style = MaterialTheme.typography.bodyLarge)
@@ -152,7 +152,7 @@ class SearchViewModel(
     private suspend fun searchUsers(query: String) {
         _isLoading.value = true
         try {
-            val currentUid = authRepository.getCurrentUserId()
+            val currentUid = authRepository.getCurrentUid()
             val results = chatRepository.searchUsers(query)
             _searchResults.value = results.filter { it.uid != currentUid }
         } catch (e: Exception) {
@@ -165,7 +165,7 @@ class SearchViewModel(
     fun startChat(otherUid: String, otherName: String, onComplete: (String) -> Unit) {
         viewModelScope.launch {
             try {
-                val currentUid = authRepository.getCurrentUserId()
+                val currentUid = authRepository.getCurrentUid()
                 if (currentUid != null) {
                     val chatId = chatRepository.createDirectChat(currentUid, otherUid)
                     onComplete(chatId)

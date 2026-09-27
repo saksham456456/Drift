@@ -5,10 +5,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.tasks.await
 
-class AuthRepository(
-    private val auth: FirebaseAuth,
-    private val database: FirebaseDatabase
-) {
+class AuthRepository {
+    private val auth = FirebaseAuth.getInstance()
+    private val database = FirebaseDatabase.getInstance()
     suspend fun signUp(username: String, password: String, displayName: String): Result<String> {
         return try {
             val email = "${username}@drift.app"
