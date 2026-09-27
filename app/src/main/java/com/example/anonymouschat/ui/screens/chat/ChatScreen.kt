@@ -101,6 +101,9 @@ class ChatViewModel(
                 }
                 .collect { msgs ->
                     _messages.value = msgs
+                    _currentUserId.value?.let { uid ->
+                        chatRepository.markChatRead(chatId, uid)
+                    }
                 }
         }
     }

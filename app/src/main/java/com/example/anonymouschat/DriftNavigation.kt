@@ -54,8 +54,22 @@ fun DriftNavigation() {
                 onSearchTapped = {
                     navController.navigate("search")
                 },
+                onCreateGroupTapped = {
+                    navController.navigate("creategroup")
+                },
                 onSettingsTapped = {
                     navController.navigate("settings")
+                }
+            )
+        }
+        
+        composable("creategroup") {
+            com.example.anonymouschat.ui.screens.group.CreateGroupScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onGroupCreated = { chatId, chatName ->
+                    navController.navigate("chat/$chatId/$chatName") {
+                        popUpTo("chatlist")
+                    }
                 }
             )
         }

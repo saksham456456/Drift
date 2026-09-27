@@ -70,11 +70,27 @@ class ChatRepository {
         
         messagesRef.setValue(finalMessage).await()
 
-        val chatUpdates = mapOf(
+        val chatRef = database.getReference("chats/$chatId")
+        val chatSnapshot = chatRef.get().await()
+        val chat = chatSnapshot.getValue(Chat::class.java)
+
+        val chatUpdates = mutableMapOf<String, Any>(
             "lastMessage" to finalMessage.text,
             "lastMessageTime" to finalMessage.timestamp
         )
-        database.getReference("chats/$chatId").updateChildren(chatUpdates).await()
+
+        chat?.participants?.forEach { (uid, count) ->
+            if (uid != message.senderId) {
+                chatUpdates["participants/$uid"] = count + 1L
+            }
+        }
+
+        chatRef.updateChildren(chatUpdates).await()
+    }
+
+    suspend fun markChatRead(chatId: String, uid: String) = withContext(Dispatchers.IO) {
+        val chatRef = database.getReference("chats/$chatId/participants/$uid")
+        chatRef.setValue(0L).await()
     }
 
     suspend fun createDirectChat(currentUid: String, otherUid: String): String = withContext(Dispatchers.IO) {
@@ -82,7 +98,7 @@ class ChatRepository {
         
         // This is a naive check. A robust check would involve querying where participants contain both.
         // For simplicity, we query where participants contain currentUid and check locally for otherUid.
-        val snapshot = chatsRef.orderByChild("participants/$currentUid").equalTo(true).get().await()
+        val snapshot = chatsRef.orderByChild("participants/$currentUid").startAt(0.0).get().await()
         
         for (child in snapshot.children) {
             val chat = child.getValue(Chat::class.java)
@@ -97,7 +113,7 @@ class ChatRepository {
         val chat = Chat(
             id = chatId,
             type = "direct",
-            participants = mapOf(currentUid to true, otherUid to true),
+            participants = mapOf(currentUid to 0L, otherUid to 0L),
             createdBy = currentUid
         )
         
@@ -109,8 +125,8 @@ class ChatRepository {
         val chatsRef = database.getReference("chats").push()
         val chatId = chatsRef.key ?: throw Exception("Failed to generate chat id")
         
-        val participants = memberUids.associateWith { true }.toMutableMap()
-        participants[createdByUid] = true
+        val participants = memberUids.associateWith { 0L }.toMutableMap()
+        participants[createdByUid] = 0L
 
         val chat = Chat(
             id = chatId,

@@ -39,7 +39,8 @@ data class ChatListItem(
     val displayName: String,
     val lastMessage: String,
     val lastMessageTime: Long,
-    val chatType: String
+    val chatType: String,
+    val unreadCount: Int
 )
 
 class ChatListViewModel : ViewModel() {
@@ -78,7 +79,8 @@ class ChatListViewModel : ViewModel() {
                         displayName = displayName,
                         lastMessage = chat.lastMessage ?: "",
                         lastMessageTime = chat.lastMessageTime ?: 0L,
-                        chatType = chat.type
+                        chatType = chat.type,
+                        unreadCount = chat.participants[uid]?.toInt() ?: 0
                     )
                 }.sortedByDescending { it.lastMessageTime }
                 _chats.value = list
@@ -247,7 +249,7 @@ fun ChatListItemRow(
                 Text(
                     text = chat.displayName,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = if (chat.unreadCount > 0) FontWeight.Bold else FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
@@ -258,19 +260,45 @@ fun ChatListItemRow(
                 Text(
                     text = timeFormatted,
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (chat.unreadCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (chat.unreadCount > 0) FontWeight.Bold else FontWeight.Normal
                 )
             }
             
             Spacer(modifier = Modifier.height(4.dp))
             
-            Text(
-                text = chat.lastMessage.ifEmpty { "New conversation" },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = chat.lastMessage.ifEmpty { "New conversation" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (chat.unreadCount > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (chat.unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+
+                if (chat.unreadCount > 0) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .background(MaterialTheme.colorScheme.primary, shape = androidx.compose.foundation.shape.CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (chat.unreadCount > 99) "99+" else chat.unreadCount.toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
         }
     }
 }
