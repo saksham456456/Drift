@@ -14,6 +14,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import com.example.anonymouschat.data.repository.SettingsRepository
+
 class MainActivity : ComponentActivity() {
 
     private val requestPermissionLauncher = registerForActivityResult(
@@ -30,7 +35,10 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            DriftTheme {
+            val settingsRepository = remember { SettingsRepository(applicationContext) }
+            val isDarkMode by settingsRepository.isDarkMode.collectAsState()
+
+            DriftTheme(darkTheme = isDarkMode) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     DriftNavigation()
                 }

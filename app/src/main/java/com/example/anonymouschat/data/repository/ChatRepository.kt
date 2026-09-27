@@ -80,7 +80,7 @@ class ChatRepository {
         )
 
         chat?.participants?.forEach { (uid, count) ->
-            if (uid != message.senderId) {
+            if (uid != message.senderUid) {
                 chatUpdates["participants/$uid"] = count + 1L
             }
         }

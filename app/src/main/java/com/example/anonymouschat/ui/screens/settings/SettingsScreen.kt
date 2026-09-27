@@ -25,6 +25,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import com.example.anonymouschat.data.repository.SettingsRepository
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.OpenInNew
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -36,6 +42,11 @@ fun SettingsScreen(
     var showDisplayNameDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
     
+    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
+    val settingsRepository = remember { SettingsRepository(context) }
+    val isDarkMode by settingsRepository.isDarkMode.collectAsState()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -86,12 +97,43 @@ fun SettingsScreen(
             )
             
             Divider()
+
+            SettingRow(
+                title = "Dark Mode",
+                subtitle = "Toggle dark theme",
+                icon = { 
+                    Switch(
+                        checked = isDarkMode,
+                        onCheckedChange = { settingsRepository.setDarkMode(it) }
+                    ) 
+                },
+                onClick = { settingsRepository.setDarkMode(!isDarkMode) }
+            )
+
+            Divider()
             
             SettingRow(
                 title = "About Drift",
-                onClick = { showAboutDialog = true }
+                onClick = { showAboutDialog = true },
+                icon = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Open") }
             )
             
+            Divider()
+
+            SettingRow(
+                title = "Terms of Service",
+                onClick = { uriHandler.openUri("https://drift.app/terms") },
+                icon = { Icon(Icons.Outlined.OpenInNew, contentDescription = "Link") }
+            )
+
+            Divider()
+
+            SettingRow(
+                title = "Privacy Policy",
+                onClick = { uriHandler.openUri("https://drift.app/privacy") },
+                icon = { Icon(Icons.Outlined.OpenInNew, contentDescription = "Link") }
+            )
+
             Divider()
             
             SettingRow(
