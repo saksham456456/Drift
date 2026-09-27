@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 
@@ -8,6 +8,7 @@ import SignUp from './pages/SignUp';
 import ChatList from './pages/ChatList';
 import ChatScreen from './pages/ChatScreen';
 import Settings from './pages/Settings';
+import Search from './pages/Search';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, initialized } = useAuthStore();
@@ -59,6 +60,7 @@ const App: React.FC = () => {
             </ProtectedRoute>
           } 
         />
+        <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
       </Routes>
     </Router>
   );

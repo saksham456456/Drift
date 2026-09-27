@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useChatStore } from '../store/chatStore';
@@ -36,9 +36,9 @@ const ChatList: React.FC = () => {
       <header className="flex justify-between items-center px-4 py-3 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">Drift</h1>
         <div className="flex space-x-3 text-gray-500 dark:text-gray-400">
-          <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+          <Link to="/search" className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
             <MessageSquarePlus size={22} />
-          </button>
+          </Link>
           <Link to="/settings" className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
             <Settings size={22} />
           </Link>
