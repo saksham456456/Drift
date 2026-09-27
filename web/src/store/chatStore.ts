@@ -47,7 +47,7 @@ export const useChatStore = create<ChatStore>((setZustand) => ({
 
       const userChats: Chat[] = [];
       for (const [chatId, chatData] of Object.entries(data as Record<string, any>)) {
-        if (chatData.participants && chatData.participants[uid] !== undefined) {
+        if (chatData.participants && chatData.participants[uid] !== undefined && chatData.participants[uid] >= 0) {
           const chat: Chat = {
             id: chatId,
             lastMessage: chatData.lastMessage,
@@ -131,7 +131,12 @@ export const useChatStore = create<ChatStore>((setZustand) => ({
           Object.keys(chatData.participants).forEach(participantId => {
              if (participantId !== senderId) {
                  const currentCount = chatData.participants[participantId] || 0;
-                 updates[`participants/${participantId}`] = currentCount + 1;
+                 const baseCount = currentCount < 0 ? 0 : currentCount;
+                 updates[`participants/${participantId}`] = baseCount + 1;
+             } else {
+                 if (chatData.participants[participantId] < 0) {
+                     updates[`participants/${participantId}`] = 0;
+                 }
              }
           });
           if (Object.keys(updates).length > 0) {

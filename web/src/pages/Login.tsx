@@ -4,7 +4,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,6 +16,7 @@ const Login: React.FC = () => {
     setLoading(true);
     
     try {
+      const email = `${username.toLowerCase()}@drift.app`;
       await signInWithEmailAndPassword(auth, email, password);
       navigate('/');
     } catch (err: any) {
@@ -43,19 +44,18 @@ const Login: React.FC = () => {
             )}
             
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                Username
               </label>
-              <div className="mt-1">
+              <div className="mt-1 relative rounded-md shadow-sm">
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
+                  id="username"
+                  name="username"
+                  type="text"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-[#2196F3] focus:outline-none focus:ring-[#2196F3] sm:text-sm"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                  className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 focus:border-[#2196F3] focus:outline-none focus:ring-[#2196F3] sm:text-sm"
                 />
               </div>
             </div>
