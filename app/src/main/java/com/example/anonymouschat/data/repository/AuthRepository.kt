@@ -27,6 +27,14 @@ class AuthRepository {
             // Save username mapping
             database.getReference("usernames").child(username).setValue(uid).await()
 
+            // Save FCM token
+            try {
+                val token = com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
+                database.getReference("users").child(uid).child("fcmToken").setValue(token).await()
+            } catch (e: Exception) {
+                // Ignore failure to get token, push notifications will just not work for this session
+            }
+
             Result.success(uid)
         } catch (e: Exception) {
             Result.failure(e)
@@ -40,6 +48,14 @@ class AuthRepository {
             val authResult = auth.signInWithEmailAndPassword(email, password).await()
             val uid = authResult.user?.uid ?: throw Exception("Login failed")
             
+            // Save FCM token
+            try {
+                val token = com.google.firebase.messaging.FirebaseMessaging.getInstance().token.await()
+                database.getReference("users").child(uid).child("fcmToken").setValue(token).await()
+            } catch (e: Exception) {
+                // Ignore
+            }
+
             Result.success(uid)
         } catch (e: Exception) {
             Result.failure(e)

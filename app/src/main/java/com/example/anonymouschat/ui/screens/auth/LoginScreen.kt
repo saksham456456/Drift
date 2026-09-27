@@ -139,7 +139,7 @@ fun LoginScreen(
 
                     OutlinedTextField(
                         value = username,
-                        onValueChange = { username = it },
+                        onValueChange = { username = it.lowercase() },
                         label = { Text("Username") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true

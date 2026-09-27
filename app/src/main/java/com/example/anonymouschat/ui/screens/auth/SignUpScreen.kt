@@ -195,8 +195,9 @@ fun SignUpScreen(
                     OutlinedTextField(
                         value = username,
                         onValueChange = { 
-                            username = it
-                            viewModel.checkUsername(it)
+                            val lowerUser = it.lowercase()
+                            username = lowerUser
+                            viewModel.checkUsername(lowerUser)
                         },
                         label = { Text("Username") },
                         modifier = Modifier.fillMaxWidth(),
