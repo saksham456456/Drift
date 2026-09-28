@@ -37,7 +37,7 @@ fun EmptyState(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(72.dp),
-            tint = TextSecondary.copy(alpha = 0.5f)
+            tint = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         )
         
         Spacer(modifier = Modifier.height(16.dp))
@@ -46,7 +46,7 @@ fun EmptyState(
             text = title,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
-            color = TextSecondary,
+            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
         
@@ -55,7 +55,7 @@ fun EmptyState(
         Text(
             text = subtitle,
             fontSize = 14.sp,
-            color = TextSecondary.copy(alpha = 0.7f),
+            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
         )
     }

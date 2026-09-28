@@ -72,7 +72,7 @@ fun ChatBubble(
                 modifier = Modifier
                     .widthIn(max = maxWidth)
                     .background(
-                        color = if (isOwnMessage) ChatBubbleSelf else ChatBubbleOther,
+                        color = if (isOwnMessage) ChatBubbleSelf else if (androidx.compose.foundation.isSystemInDarkTheme()) com.example.anonymouschat.theme.DarkChatBubbleOther else ChatBubbleOther,
                         shape = RoundedCornerShape(
                             topStart = 16.dp,
                             topEnd = 16.dp,
@@ -84,7 +84,7 @@ fun ChatBubble(
             ) {
                 Text(
                     text = message,
-                    color = if (isOwnMessage) White else Color.Black,
+                    color = if (isOwnMessage) White else androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
                     fontSize = 16.sp,
                     lineHeight = 22.sp
                 )
@@ -92,7 +92,7 @@ fun ChatBubble(
             
             Text(
                 text = timeString,
-                color = TextSecondary,
+                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 11.sp,
                 modifier = Modifier.padding(top = 4.dp, start = if (isOwnMessage) 0.dp else 12.dp, end = if (isOwnMessage) 12.dp else 0.dp)
             )

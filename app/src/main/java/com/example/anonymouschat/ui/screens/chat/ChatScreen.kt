@@ -140,6 +140,7 @@ class ChatViewModelFactory(private val chatId: String) : ViewModelProvider.Facto
 fun ChatScreen(
     chatId: String,
     chatName: String,
+    chatType: String = "direct",
     onNavigateBack: () -> Unit,
     viewModel: ChatViewModel = viewModel(factory = ChatViewModelFactory(chatId))
 ) {
@@ -179,11 +180,11 @@ fun ChatScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
             )
         },
-        containerColor = Color.White
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -209,6 +210,7 @@ fun ChatScreen(
                         senderName = message.senderName,
                         isOwnMessage = isOwnMessage,
                         timestamp = message.timestamp,
+                        showSenderName = chatType == "group",
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
@@ -217,7 +219,7 @@ fun ChatScreen(
             }
 
             Surface(
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 2.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {

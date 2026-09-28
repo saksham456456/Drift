@@ -41,9 +41,10 @@ fun SettingsScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     var showDisplayNameDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showTermsDialog by remember { mutableStateOf(false) }
+    var showPrivacyDialog by remember { mutableStateOf(false) }
     
     val context = LocalContext.current
-    val uriHandler = LocalUriHandler.current
     val settingsRepository = remember { SettingsRepository(context) }
     val isDarkMode by settingsRepository.isDarkMode.collectAsState()
 
@@ -87,7 +88,7 @@ fun SettingsScreen(
             )
             
             Spacer(modifier = Modifier.height(32.dp))
-            Divider()
+            HorizontalDivider()
             
             SettingRow(
                 title = "Display Name",
@@ -96,7 +97,7 @@ fun SettingsScreen(
                 onClick = { showDisplayNameDialog = true }
             )
             
-            Divider()
+            HorizontalDivider()
 
             SettingRow(
                 title = "Dark Mode",
@@ -110,7 +111,7 @@ fun SettingsScreen(
                 onClick = { settingsRepository.setDarkMode(!isDarkMode) }
             )
 
-            Divider()
+            HorizontalDivider()
             
             SettingRow(
                 title = "About Drift",
@@ -118,23 +119,23 @@ fun SettingsScreen(
                 icon = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Open") }
             )
             
-            Divider()
+            HorizontalDivider()
 
             SettingRow(
                 title = "Terms of Service",
-                onClick = { uriHandler.openUri("https://drift.app/terms") },
-                icon = { Icon(Icons.Outlined.OpenInNew, contentDescription = "Link") }
+                onClick = { showTermsDialog = true },
+                icon = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Open") }
             )
 
-            Divider()
+            HorizontalDivider()
 
             SettingRow(
                 title = "Privacy Policy",
-                onClick = { uriHandler.openUri("https://drift.app/privacy") },
-                icon = { Icon(Icons.Outlined.OpenInNew, contentDescription = "Link") }
+                onClick = { showPrivacyDialog = true },
+                icon = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Open") }
             )
 
-            Divider()
+            HorizontalDivider()
             
             SettingRow(
                 title = "Log Out",
@@ -195,6 +196,32 @@ fun SettingsScreen(
             text = { Text("Drift — distraction-free messaging. No stories. No feeds. Just chat.") },
             confirmButton = {
                 TextButton(onClick = { showAboutDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
+    if (showTermsDialog) {
+        AlertDialog(
+            onDismissRequest = { showTermsDialog = false },
+            title = { Text("Terms of Service") },
+            text = { Text("These are the terms of service. Be nice. Don't spam.") },
+            confirmButton = {
+                TextButton(onClick = { showTermsDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
+    if (showPrivacyDialog) {
+        AlertDialog(
+            onDismissRequest = { showPrivacyDialog = false },
+            title = { Text("Privacy Policy") },
+            text = { Text("We respect your privacy. Messages are securely stored and you control your data.") },
+            confirmButton = {
+                TextButton(onClick = { showPrivacyDialog = false }) {
                     Text("Close")
                 }
             }
