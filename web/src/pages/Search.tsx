@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { db } from '../firebase';
-import { ref, get, query, orderByChild, startAt, endAt } from 'firebase/database';
+import { ref, get, push, set } from 'firebase/database';
 import { ArrowLeft, Search as SearchIcon } from 'lucide-react';
-import { useChatStore } from '../store/chatStore';
 
 interface SearchUser {
   uid: string;
@@ -93,7 +92,6 @@ const Search: React.FC = () => {
        navigate(`/chat/${existingChatId}`);
     } else {
        // Create new chat
-       const { push, set } = await import('firebase/database');
        const newChatRef = push(chatsRef);
        await set(newChatRef, {
           type: 'direct',

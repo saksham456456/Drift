@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 
@@ -63,6 +63,9 @@ const App: React.FC = () => {
         />
         <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
         <Route path="/create-group" element={<ProtectedRoute><CreateGroup /></ProtectedRoute>} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );

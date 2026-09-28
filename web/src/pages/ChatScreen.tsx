@@ -10,13 +10,19 @@ const ChatScreen: React.FC = () => {
   const { id: chatId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { chats, messages, listenToMessages, sendMessage, markAsRead, setActiveChat } = useChatStore();
+  const { chats, messages, listenToMessages, listenToChats, sendMessage, markAsRead, setActiveChat } = useChatStore();
   
   const [inputText, setInputText] = useState('');
   const [lastSeen, setLastSeen] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const chat = chats.find(c => c.id === chatId);
+
+  useEffect(() => {
+    if (!chat && user) {
+      listenToChats(user.uid);
+    }
+  }, [chat, user, listenToChats]);
 
   useEffect(() => {
     if (chatId) {
@@ -36,14 +42,14 @@ const ChatScreen: React.FC = () => {
   }, [chatId, user, markAsRead, messages]);
 
   useEffect(() => {
-    if (chat?.otherParticipantId) {
+    if (chat?.otherParticipantId && chat?.type !== 'group') {
       const lastSeenRef = ref(db, `users/${chat.otherParticipantId}/lastSeen`);
       const unsub = onValue(lastSeenRef, (snap) => {
         setLastSeen(snap.val());
       });
       return () => unsub();
     }
-  }, [chat?.otherParticipantId]);
+  }, [chat?.otherParticipantId, chat?.type]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,6 +65,10 @@ const ChatScreen: React.FC = () => {
   };
 
   const getStatusText = () => {
+    if (chat?.type === 'group') {
+      const count = chat.participants ? Object.keys(chat.participants).length : 0;
+      return `${count} members`;
+    }
     if (lastSeen === -1) return 'Online';
     if (lastSeen && lastSeen > 0) {
       const date = new Date(lastSeen);
@@ -101,9 +111,16 @@ const ChatScreen: React.FC = () => {
           const isOwn = msg.senderId === user?.uid;
           const showTime = index === messages.length - 1 || messages[index + 1].senderId !== msg.senderId;
           const date = new Date(msg.timestamp);
+          const isGroup = chat?.type === 'group';
+          const showSenderName = isGroup && !isOwn && (index === 0 || messages[index - 1].senderId !== msg.senderId);
           
           return (
             <div key={msg.id} className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+              {showSenderName && (
+                <span className="text-xs text-gray-500 dark:text-gray-400 ml-1 mb-1 font-medium">
+                  {msg.senderName || msg.senderId.slice(0, 5)}
+                </span>
+              )}
               <div 
                 className={`max-w-[75%] rounded-2xl px-4 py-2 ${
                   isOwn 
@@ -132,7 +149,7 @@ const ChatScreen: React.FC = () => {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Message..."
-              className="w-full bg-transparent border-none focus:ring-0 px-4 py-2 text-gray-900 dark:text-white"
+              className="w-full bg-transparent border-none focus:ring-0 px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
             />
           </div>
           <button 
