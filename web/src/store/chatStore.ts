@@ -1,9 +1,11 @@
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 import { db } from '../firebase';
 import { ref, onValue, push, set, update, get } from 'firebase/database';
 
 export interface Chat {
   id: string;
+  type?: string;
+  name?: string;
   lastMessage?: string;
   lastMessageTime?: number;
   participants: Record<string, number>;
@@ -50,24 +52,30 @@ export const useChatStore = create<ChatStore>((setZustand) => ({
         if (chatData.participants && chatData.participants[uid] !== undefined && chatData.participants[uid] >= 0) {
           const chat: Chat = {
             id: chatId,
+            type: chatData.type,
+            name: chatData.name,
             lastMessage: chatData.lastMessage,
             lastMessageTime: chatData.lastMessageTime,
             participants: chatData.participants
           };
 
-          const participantIds = Object.keys(chatData.participants);
-          if (participantIds.length === 2) {
-            const otherId = participantIds.find(id => id !== uid);
-            if (otherId) {
-              chat.otherParticipantId = otherId;
-              try {
-                const userRef = ref(db, `users/${otherId}`);
-                const userSnap = await get(userRef);
-                if (userSnap.exists()) {
-                  chat.otherParticipantName = userSnap.val().displayName;
+          if (chatData.type === 'group') {
+            chat.otherParticipantName = chatData.name;
+          } else {
+            const participantIds = Object.keys(chatData.participants);
+            if (participantIds.length === 2) {
+              const otherId = participantIds.find(id => id !== uid);
+              if (otherId) {
+                chat.otherParticipantId = otherId;
+                try {
+                  const userRef = ref(db, `users/${otherId}`);
+                  const userSnap = await get(userRef);
+                  if (userSnap.exists()) {
+                    chat.otherParticipantName = userSnap.val().displayName;
+                  }
+                } catch (e) {
+                  console.error("Failed to get user name", e);
                 }
-              } catch (e) {
-                console.error("Failed to get user name", e);
               }
             }
           }

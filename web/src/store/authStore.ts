@@ -1,6 +1,6 @@
 ﻿import { create } from 'zustand';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { ref, get } from 'firebase/database';
+import { ref, get, onValue, onDisconnect, serverTimestamp, set } from 'firebase/database';
 import { auth, db } from '../firebase';
 
 export interface UserProfile {
@@ -29,6 +29,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   listenToAuth: () => {
     onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        const connectedRef = ref(db, '.info/connected');
+        const lastSeenRef = ref(db, "users/${firebaseUser.uid}/lastSeen");
+        onValue(connectedRef, (snap) => {
+          if (snap.val() === true) {
+            set(lastSeenRef, -1);
+            onDisconnect(lastSeenRef).set(serverTimestamp());
+          }
+        });
         const userRef = ref(db, `users/${firebaseUser.uid}`);
         const snapshot = await get(userRef);
         

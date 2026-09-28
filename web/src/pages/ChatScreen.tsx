@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useChatStore } from '../store/chatStore';
 import { ArrowLeft, Send } from 'lucide-react';
+import { db } from '../firebase';
+import { ref, onValue } from 'firebase/database';
 
 const ChatScreen: React.FC = () => {
   const { id: chatId } = useParams<{ id: string }>();
@@ -11,6 +13,7 @@ const ChatScreen: React.FC = () => {
   const { chats, messages, listenToMessages, sendMessage, markAsRead, setActiveChat } = useChatStore();
   
   const [inputText, setInputText] = useState('');
+  const [lastSeen, setLastSeen] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const chat = chats.find(c => c.id === chatId);
@@ -33,6 +36,16 @@ const ChatScreen: React.FC = () => {
   }, [chatId, user, markAsRead, messages]);
 
   useEffect(() => {
+    if (chat?.otherParticipantId) {
+      const lastSeenRef = ref(db, `users/${chat.otherParticipantId}/lastSeen`);
+      const unsub = onValue(lastSeenRef, (snap) => {
+        setLastSeen(snap.val());
+      });
+      return () => unsub();
+    }
+  }, [chat?.otherParticipantId]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
@@ -45,6 +58,20 @@ const ChatScreen: React.FC = () => {
     await sendMessage(chatId, textToSend, user.uid);
   };
 
+  const getStatusText = () => {
+    if (lastSeen === -1) return 'Online';
+    if (lastSeen && lastSeen > 0) {
+      const date = new Date(lastSeen);
+      const now = new Date();
+      if (now.getTime() - date.getTime() < 60000) return 'Last seen just now';
+      if (date.toDateString() === now.toDateString()) {
+        return `Last seen today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      }
+      return `Last seen ${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
+    }
+    return '';
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <header className="flex items-center px-4 py-3 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
@@ -54,13 +81,18 @@ const ChatScreen: React.FC = () => {
         >
           <ArrowLeft size={22} />
         </button>
-        <div className="flex items-center flex-1">
-          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+        <div className="flex items-center flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold flex-shrink-0">
             {chat?.otherParticipantName ? chat.otherParticipantName.charAt(0).toUpperCase() : '?'}
           </div>
-          <h1 className="ml-3 text-lg font-semibold text-gray-900 dark:text-white truncate">
-            {chat?.otherParticipantName || 'Chat'}
-          </h1>
+          <div className="ml-3 flex flex-col min-w-0">
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+              {chat?.otherParticipantName || 'Chat'}
+            </h1>
+            <p className={`text-xs truncate ${lastSeen === -1 ? 'text-blue-500 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+              {getStatusText()}
+            </p>
+          </div>
         </div>
       </header>
 

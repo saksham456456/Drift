@@ -2,7 +2,9 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useChatStore } from '../store/chatStore';
-import { Settings, MessageSquarePlus } from 'lucide-react';
+import { Settings, MessageSquarePlus, Trash2, Users } from 'lucide-react';
+import { db } from '../firebase';
+import { ref, update } from 'firebase/database';
 
 const ChatList: React.FC = () => {
   const { user } = useAuthStore();
@@ -31,11 +33,23 @@ const ChatList: React.FC = () => {
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
+  const deleteChat = async (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation();
+    if (!user) return;
+    if (window.confirm("Delete this chat?")) {
+      const chatParticipantRef = ref(db, `chats/${chatId}/participants`);
+      await update(chatParticipantRef, {
+        [user.uid]: -1
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <header className="flex justify-between items-center px-4 py-3 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">Drift</h1>
         <div className="flex space-x-3 text-gray-500 dark:text-gray-400">
+          <Link to="/create-group" className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"><Users size={22} /></Link>
           <Link to="/search" className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
             <MessageSquarePlus size={22} />
           </Link>
@@ -60,7 +74,7 @@ const ChatList: React.FC = () => {
                 <li 
                   key={chat.id} 
                   onClick={() => navigate(`/chat/${chat.id}`)}
-                  className="flex items-center px-4 py-4 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                  className="group flex items-center px-4 py-4 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                 >
                   <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white text-lg font-semibold flex-shrink-0">
                     {getInitial(chat.otherParticipantName)}
@@ -78,10 +92,17 @@ const ChatList: React.FC = () => {
                       {chat.lastMessage || 'No messages yet'}
                     </p>
                   </div>
-                  {unreadCount > 0 && (
+                  {unreadCount > 0 ? (
                     <div className="ml-3 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-[10px] font-bold text-white">
                       {unreadCount}
                     </div>
+                  ) : (
+                    <button 
+                      onClick={(e) => deleteChat(e, chat.id)}
+                      className="ml-3 p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   )}
                 </li>
               );

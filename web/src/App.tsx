@@ -9,6 +9,7 @@ import ChatList from './pages/ChatList';
 import ChatScreen from './pages/ChatScreen';
 import Settings from './pages/Settings';
 import Search from './pages/Search';
+import CreateGroup from './pages/CreateGroup';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, initialized } = useAuthStore();
@@ -61,6 +62,7 @@ const App: React.FC = () => {
           } 
         />
         <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+        <Route path="/create-group" element={<ProtectedRoute><CreateGroup /></ProtectedRoute>} />
       </Routes>
     </Router>
   );
