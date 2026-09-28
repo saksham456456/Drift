@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { ref, set } from 'firebase/database';
@@ -71,7 +71,7 @@ const SignUp: React.FC = () => {
                   required
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-[#2196F3] focus:outline-none focus:ring-[#2196F3] sm:text-sm"
+                  className="block w-full appearance-none rounded-md border border-gray-300 bg-white text-gray-900 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-[#2196F3] focus:outline-none focus:ring-[#2196F3] sm:text-sm"
                 />
               </div>
             </div>
@@ -88,7 +88,7 @@ const SignUp: React.FC = () => {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-                  className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 pr-24 placeholder-gray-400 focus:border-[#2196F3] focus:outline-none focus:ring-[#2196F3] sm:text-sm"
+                  className="block w-full appearance-none rounded-md border border-gray-300 bg-white text-gray-900 px-3 py-2 pr-24 placeholder-gray-400 focus:border-[#2196F3] focus:outline-none focus:ring-[#2196F3] sm:text-sm"
                 />
               </div>
             </div>
@@ -106,7 +106,7 @@ const SignUp: React.FC = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-[#2196F3] focus:outline-none focus:ring-[#2196F3] sm:text-sm"
+                  className="block w-full appearance-none rounded-md border border-gray-300 bg-white text-gray-900 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-[#2196F3] focus:outline-none focus:ring-[#2196F3] sm:text-sm"
                 />
               </div>
             </div>
