@@ -10,6 +10,8 @@ import ChatScreen from './pages/ChatScreen';
 import Settings from './pages/Settings';
 import Search from './pages/Search';
 import CreateGroup from './pages/CreateGroup';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, initialized } = useAuthStore();
