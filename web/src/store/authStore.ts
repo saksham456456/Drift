@@ -1,6 +1,6 @@
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
-import { ref, get, onValue, onDisconnect, serverTimestamp, set } from 'firebase/database';
+import { ref, get, onValue, onDisconnect, serverTimestamp, set as firebaseSet } from 'firebase/database';
 import { auth, db } from '../firebase';
 
 export interface UserProfile {
@@ -21,7 +21,7 @@ interface AuthState {
   logout: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((setZustand) => ({
   user: null,
   loading: true,
   initialized: false,
@@ -30,10 +30,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const connectedRef = ref(db, '.info/connected');
-        const lastSeenRef = ref(db, "users/${firebaseUser.uid}/lastSeen");
+        const lastSeenRef = ref(db, `users/${firebaseUser.uid}/lastSeen`);
         onValue(connectedRef, (snap) => {
           if (snap.val() === true) {
-            set(lastSeenRef, -1);
+            firebaseSet(lastSeenRef, -1);
             onDisconnect(lastSeenRef).set(serverTimestamp());
           }
         });
@@ -42,7 +42,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         
         if (snapshot.exists()) {
           const userData = snapshot.val();
-          set({ 
+          setZustand({ 
             user: {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
@@ -56,7 +56,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           });
         } else {
           // Fallback if doc doesn't exist yet but user is logged in
-          set({
+          setZustand({
             user: {
               uid: firebaseUser.uid,
               email: firebaseUser.email || '',
@@ -68,15 +68,15 @@ export const useAuthStore = create<AuthState>((set) => ({
           });
         }
       } else {
-        set({ user: null, loading: false, initialized: true });
+        setZustand({ user: null, loading: false, initialized: true });
       }
     });
   },
   
-  setUser: (user) => set({ user }),
+  setUser: (user) => setZustand({ user }),
   
   logout: async () => {
     await auth.signOut();
-    set({ user: null });
+    setZustand({ user: null });
   }
 }));
