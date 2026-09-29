@@ -33,7 +33,9 @@ export const StreamProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json'
             },
+            body: JSON.stringify({ uid: user.uid })
           });
 
           if (!res.ok) throw new Error('Failed to get stream token');
