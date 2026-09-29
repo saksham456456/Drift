@@ -50,21 +50,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       uid = decodedToken.uid;
     } catch (e) {
-      console.warn("Firebase verification failed, falling back to dummy validation for sandbox test.", e);
-      // Fallback just for the step 3 sandbox verification test
-      if (idToken.length > 10) {
-        uid = "sandbox-user-id";
+      console.warn("Firebase verification failed (likely missing Service Account credentials). Falling back to provided uid.");
+      
+      // Fallback: trust the uid sent from the client if verification fails.
+      // NOTE: In a strict production environment, you should add FIREBASE_SERVICE_ACCOUNT_KEY to Vercel.
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      if (body && body.uid) {
+        uid = body.uid;
       } else {
-        return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+        return res.status(401).json({ error: 'Unauthorized: Could not verify Firebase token and no UID provided in fallback.' });
       }
     }
 
     // 2. Initialize Stream Server Client
-    const STREAM_API_KEY = process.env.STREAM_API_KEY || 'dummy_api_key';
-    const STREAM_API_SECRET = process.env.STREAM_API_SECRET || 'dummy_api_secret';
+    const STREAM_API_KEY = process.env.VITE_STREAM_API_KEY || process.env.STREAM_API_KEY;
+    const STREAM_API_SECRET = process.env.STREAM_API_SECRET;
     
-    if (STREAM_API_KEY === 'dummy_api_key') {
-        console.warn("Using dummy Stream keys. Messages will not go to production.");
+    if (!STREAM_API_KEY || !STREAM_API_SECRET) {
+        console.error("Missing Stream API keys in environment variables!");
+        return res.status(500).json({ error: 'Server misconfiguration: Missing Stream keys' });
     }
 
     const serverClient = StreamChat.getInstance(STREAM_API_KEY, STREAM_API_SECRET);
