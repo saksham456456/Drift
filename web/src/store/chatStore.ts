@@ -31,6 +31,8 @@ interface ChatStore {
   markAsRead: (chatId: string, uid: string) => Promise<void>;
 }
 
+const userCache = new Map<string, string>();
+
 export const useChatStore = create<ChatStore>((setZustand) => ({
   chats: [],
   activeChatId: null,
@@ -67,14 +69,20 @@ export const useChatStore = create<ChatStore>((setZustand) => ({
               const otherId = participantIds.find(id => id !== uid);
               if (otherId) {
                 chat.otherParticipantId = otherId;
-                try {
-                  const userRef = ref(db, `users/${otherId}`);
-                  const userSnap = await get(userRef);
-                  if (userSnap.exists()) {
-                    chat.otherParticipantName = userSnap.val().displayName;
+                if (userCache.has(otherId)) {
+                  chat.otherParticipantName = userCache.get(otherId);
+                } else {
+                  try {
+                    const userRef = ref(db, `users/${otherId}`);
+                    const userSnap = await get(userRef);
+                    if (userSnap.exists()) {
+                      const name = userSnap.val().displayName;
+                      userCache.set(otherId, name);
+                      chat.otherParticipantName = name;
+                    }
+                  } catch (e) {
+                    console.error("Failed to get user name", e);
                   }
-                } catch (e) {
-                  console.error("Failed to get user name", e);
                 }
               }
             }

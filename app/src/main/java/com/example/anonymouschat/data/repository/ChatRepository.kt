@@ -185,6 +185,48 @@ class ChatRepository {
         })
     }
 
+    fun getChat(chatId: String): Flow<Chat?> = callbackFlow {
+        val query = database.getReference("chats/$chatId")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                trySend(snapshot.getValue(Chat::class.java)?.copy(id = snapshot.key ?: ""))
+            }
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+        query.addValueEventListener(listener)
+        awaitClose { query.removeEventListener(listener) }
+    }
+
+    fun getOtherUserStatus(uid: String): Flow<Long?> = callbackFlow {
+        val query = database.getReference("users/$uid/lastSeen")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                trySend(snapshot.getValue(Long::class.java))
+            }
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+        query.addValueEventListener(listener)
+        awaitClose { query.removeEventListener(listener) }
+    }
+
+    fun getUserProfile(uid: String): Flow<User?> = callbackFlow {
+        val query = database.getReference("users/$uid")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                trySend(snapshot.getValue(User::class.java))
+            }
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+        query.addValueEventListener(listener)
+        awaitClose { query.removeEventListener(listener) }
+    }
+
     suspend fun deleteChat(chatId: String) = withContext(Dispatchers.IO) {
         val currentUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: return@withContext
         val chatRef = database.getReference("chats/$chatId")

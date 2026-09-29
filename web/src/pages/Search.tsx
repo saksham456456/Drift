@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useStreamClient } from '../hooks/useStreamClient';
 import { db } from '../firebase';
-import { ref, get, push, set } from 'firebase/database';
+import { ref, get } from 'firebase/database';
 import { ArrowLeft, Search as SearchIcon } from 'lucide-react';
 
 interface SearchUser {
@@ -14,6 +15,7 @@ interface SearchUser {
 const Search: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const client = useStreamClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<SearchUser[]>([]);
   const [loading, setLoading] = useState(false);
@@ -67,43 +69,16 @@ const Search: React.FC = () => {
   };
 
   const startChat = async (otherUid: string) => {
-    if (!user) return;
+    if (!user || !client) return;
     
-    // Check if chat exists
-    const chatsRef = ref(db, 'chats');
-    const snapshot = await get(chatsRef);
-    let existingChatId = null;
-    
-    if (snapshot.exists()) {
-      const allChats = snapshot.val();
-      for (const [chatId, chatData] of Object.entries(allChats as Record<string, any>)) {
-        if (chatData.participants && chatData.participants[user.uid] !== undefined && chatData.participants[otherUid] !== undefined) {
-           // Both are participants. This is their direct chat.
-           const participantKeys = Object.keys(chatData.participants);
-           if (participantKeys.length === 2 && chatData.type !== 'group') {
-              existingChatId = chatId;
-              break;
-           }
-        }
-      }
-    }
-
-    if (existingChatId) {
-       navigate(`/chat/${existingChatId}`);
-    } else {
-       // Create new chat
-       const newChatRef = push(chatsRef);
-       await set(newChatRef, {
-          type: 'direct',
-          participants: {
-             [user.uid]: 0,
-             [otherUid]: 0
-          },
-          lastMessage: '',
-          lastMessageTime: Date.now(),
-          createdBy: user.uid
-       });
-       navigate(`/chat/${newChatRef.key}`);
+    try {
+      const channel = client.channel('messaging', {
+        members: [user.uid, otherUid],
+      });
+      await channel.create();
+      navigate(`/chat/${channel.id}`);
+    } catch (err) {
+      console.error("Failed to create Stream channel", err);
     }
   };
 

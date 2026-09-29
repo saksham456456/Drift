@@ -96,4 +96,8 @@ dependencies {
   implementation(libs.firebase.auth)
   implementation(libs.firebase.database)
   implementation("com.google.firebase:firebase-messaging")
+
+  // Stream Chat
+  implementation("io.getstream:stream-chat-android-compose:6.0.12")
+  implementation("io.getstream:stream-chat-android-offline:6.0.12")
 }

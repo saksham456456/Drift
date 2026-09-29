@@ -167,8 +167,18 @@ class SearchViewModel(
             try {
                 val currentUid = authRepository.getCurrentUid()
                 if (currentUid != null) {
-                    val chatId = chatRepository.createDirectChat(currentUid, otherUid)
-                    onComplete(chatId)
+                    val client = io.getstream.chat.android.client.ChatClient.instance()
+                    val channel = client.channel("messaging", "")
+                    
+                    // The create API requires passing the members
+                    val result = channel.create(
+                        memberIds = listOf(currentUid, otherUid),
+                        extraData = emptyMap()
+                    ).await()
+                    
+                    if (result.isSuccess) {
+                        onComplete(result.getOrNull()?.cid?.replace("messaging:", "") ?: "")
+                    }
                 }
             } catch (e: Exception) {
                 // Handle error

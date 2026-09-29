@@ -1,86 +1,43 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { useChatStore } from '../store/chatStore';
-import { ArrowLeft, Send } from 'lucide-react';
-import { db } from '../firebase';
-import { ref, onValue } from 'firebase/database';
+import { useStreamClient } from '../hooks/useStreamClient';
+import { Chat, Channel, MessageList, MessageComposer, Window, ChannelHeader } from 'stream-chat-react';
+import 'stream-chat-react/dist/css/index.css';
 
 const ChatScreen: React.FC = () => {
   const { id: chatId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { chats, messages, listenToMessages, listenToChats, sendMessage, markAsRead, setActiveChat } = useChatStore();
-  
-  const [inputText, setInputText] = useState('');
-  const [lastSeen, setLastSeen] = useState<number | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const chat = chats.find(c => c.id === chatId);
+  const client = useStreamClient();
+  const [channel, setChannel] = useState<any>(null);
 
   useEffect(() => {
-    if (!chat && user) {
-      listenToChats(user.uid);
-    }
-  }, [chat, user, listenToChats]);
+    if (!client || !chatId || !user) return;
 
-  useEffect(() => {
-    if (chatId) {
-      setActiveChat(chatId);
-      const unsubscribe = listenToMessages(chatId);
-      return () => {
-        unsubscribe();
-        setActiveChat(null);
-      };
-    }
-  }, [chatId, listenToMessages, setActiveChat]);
-
-  useEffect(() => {
-    if (chatId && user) {
-      markAsRead(chatId, user.uid);
-    }
-  }, [chatId, user, markAsRead, messages]);
-
-  useEffect(() => {
-    if (chat?.otherParticipantId && chat?.type !== 'group') {
-      const lastSeenRef = ref(db, `users/${chat.otherParticipantId}/lastSeen`);
-      const unsub = onValue(lastSeenRef, (snap) => {
-        setLastSeen(snap.val());
-      });
-      return () => unsub();
-    }
-  }, [chat?.otherParticipantId, chat?.type]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputText.trim() || !chatId || !user) return;
-    
-    const textToSend = inputText.trim();
-    setInputText('');
-    await sendMessage(chatId, textToSend, user.uid);
-  };
-
-  const getStatusText = () => {
-    if (chat?.type === 'group') {
-      const count = chat.participants ? Object.keys(chat.participants).length : 0;
-      return `${count} members`;
-    }
-    if (lastSeen === -1) return 'Online';
-    if (lastSeen && lastSeen > 0) {
-      const date = new Date(lastSeen);
-      const now = new Date();
-      if (now.getTime() - date.getTime() < 60000) return 'Last seen just now';
-      if (date.toDateString() === now.toDateString()) {
-        return `Last seen today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    // In a real app, the channel ID is usually generated when users start a chat.
+    // For this migration, we'll try to watch a messaging channel with the given ID.
+    const setupChannel = async () => {
+      try {
+        const newChannel = client.channel('messaging', chatId);
+        await newChannel.watch();
+        setChannel(newChannel);
+      } catch (err) {
+        console.error("Error watching channel", err);
       }
-      return `Last seen ${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
-    }
-    return '';
-  };
+    };
+
+    setupChannel();
+  }, [client, chatId, user]);
+
+  if (!client || !channel) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+        <p className="text-gray-500">Connecting to secure chat...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -91,80 +48,22 @@ const ChatScreen: React.FC = () => {
         >
           <ArrowLeft size={22} />
         </button>
-        <div className="flex items-center flex-1 min-w-0">
-          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold flex-shrink-0">
-            {chat?.otherParticipantName ? chat.otherParticipantName.charAt(0).toUpperCase() : '?'}
-          </div>
-          <div className="ml-3 flex flex-col min-w-0">
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
-              {chat?.otherParticipantName || 'Chat'}
-            </h1>
-            <p className={`text-xs truncate ${lastSeen === -1 ? 'text-blue-500 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
-              {getStatusText()}
-            </p>
-          </div>
+        <div className="flex-1">
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Chat</h1>
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((msg, index) => {
-          const isOwn = msg.senderId === user?.uid;
-          const showTime = index === messages.length - 1 || messages[index + 1].senderId !== msg.senderId;
-          const date = new Date(msg.timestamp);
-          const isGroup = chat?.type === 'group';
-          const showSenderName = isGroup && !isOwn && (index === 0 || messages[index - 1].senderId !== msg.senderId);
-          
-          return (
-            <div key={msg.id} className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
-              {showSenderName && (
-                <span className="text-xs text-gray-500 dark:text-gray-400 ml-1 mb-1 font-medium">
-                  {msg.senderName || msg.senderId.slice(0, 5)}
-                </span>
-              )}
-              <div 
-                className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-                  isOwn 
-                    ? 'bg-blue-500 text-white rounded-br-sm' 
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-sm'
-                }`}
-              >
-                <p className="text-[15px] leading-relaxed break-words whitespace-pre-wrap">{msg.text}</p>
-              </div>
-              {showTime && (
-                <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 mx-1">
-                  {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              )}
-            </div>
-          );
-        })}
-        <div ref={messagesEndRef} />
+      <main className="flex-1 overflow-hidden">
+        <Chat client={client} theme="str-chat__theme-light">
+          <Channel channel={channel}>
+            <Window>
+              <ChannelHeader />
+              <MessageList />
+              <MessageComposer />
+            </Window>
+          </Channel>
+        </Chat>
       </main>
-
-      <div className="bg-white dark:bg-gray-800 p-3 shadow-[0_-1px_3px_rgba(0,0,0,0.05)] border-t border-gray-200 dark:border-gray-700">
-        <form onSubmit={handleSend} className="flex items-end space-x-2 max-w-4xl mx-auto">
-          <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-2xl border border-transparent focus-within:border-blue-500 transition-colors overflow-hidden flex items-center min-h-[44px]">
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Message..."
-              className="w-full bg-transparent border-none focus:ring-0 px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-            />
-          </div>
-          <button 
-            type="submit" 
-            disabled={!inputText.trim()}
-            className={`p-3 rounded-full flex-shrink-0 transition-colors ${
-              inputText.trim() 
-                ? 'bg-blue-500 text-white hover:bg-blue-600' 
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
-            }`}
-          >
-            <Send size={20} className={inputText.trim() ? 'ml-0.5' : ''} />
-          </button>
-        </form>
-      </div>
     </div>
   );
 };

@@ -92,9 +92,20 @@ class CreateGroupViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val memberUids = members.map { it.uid }
-                val chatId = chatRepository.createGroupChat(name, memberUids, currentUid)
-                onSuccess(chatId)
+                val memberUids = members.map { it.uid }.toMutableList()
+                memberUids.add(currentUid)
+                
+                val client = io.getstream.chat.android.client.ChatClient.instance()
+                val channel = client.channel("messaging", "")
+                
+                val result = channel.create(
+                    memberIds = memberUids,
+                    extraData = mapOf("name" to name)
+                ).await()
+                
+                if (result.isSuccess) {
+                    onSuccess(result.getOrNull()?.cid?.replace("messaging:", "") ?: "")
+                }
             } catch (e: Exception) {
                 // Handle error
             } finally {

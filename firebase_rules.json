@@ -1,0 +1,32 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "usernames": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      ".indexOn": ".value"
+    },
+    "chats": {
+      ".read": "auth != null",
+      "$chatId": {
+        ".read": "data.child('participants').hasChild(auth.uid)",
+        ".write": "auth != null",
+        "participants": {
+          ".indexOn": ".value"
+        }
+      }
+    },
+    "messages": {
+      "$chatId": {
+        ".read": "auth != null && root.child('chats').child($chatId).child('participants').hasChild(auth.uid)",
+        ".write": "auth != null && root.child('chats').child($chatId).child('participants').hasChild(auth.uid)",
+        ".indexOn": "timestamp"
+      }
+    }
+  }
+}

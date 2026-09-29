@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { useStreamClient } from '../hooks/useStreamClient';
 import { db } from '../firebase';
-import { ref, get, push, set } from 'firebase/database';
+import { ref, get } from 'firebase/database';
 import { ArrowLeft, Search as SearchIcon, Users } from 'lucide-react';
 
 interface SearchUser {
@@ -14,6 +15,7 @@ interface SearchUser {
 const CreateGroup: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const client = useStreamClient();
   const [groupName, setGroupName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<SearchUser[]>([]);
@@ -68,28 +70,19 @@ const CreateGroup: React.FC = () => {
   };
 
   const handleCreateGroup = async () => {
-    if (!user || !groupName.trim() || selectedUsers.length === 0) return;
+    if (!user || !client || !groupName.trim() || selectedUsers.length === 0) return;
     
-    const chatsRef = ref(db, 'chats');
-    const newChatRef = push(chatsRef);
-    
-    const participants: Record<string, number> = {
-      [user.uid]: 0
-    };
-    selectedUsers.forEach(su => {
-      participants[su.uid] = 0;
-    });
-
-    await set(newChatRef, {
-      type: 'group',
-      name: groupName.trim(),
-      participants,
-      lastMessage: '',
-      lastMessageTime: Date.now(),
-      createdBy: user.uid
-    });
-    
-    navigate(`/chat/${newChatRef.key}`);
+    try {
+      const members = [user.uid, ...selectedUsers.map(su => su.uid)];
+      const channel = client.channel('messaging', {
+        name: groupName.trim(),
+        members: members,
+      });
+      await channel.create();
+      navigate(`/chat/${channel.id}`);
+    } catch (err) {
+      console.error("Error creating stream group", err);
+    }
   };
 
   return (

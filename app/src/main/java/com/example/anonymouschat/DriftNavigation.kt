@@ -48,13 +48,8 @@ fun DriftNavigation() {
 
         composable("chatlist") {
             ChatListScreen(
-                onChatTapped = { chatId, chatName ->
-                    val encodedName = java.net.URLEncoder.encode(chatName, "UTF-8")
-                    // Since ChatListScreen doesn't explicitly provide chatType in this callback signature, 
-                    // we'll infer it or just pass "unknown" and let ChatScreen handle it, but wait, ChatListScreen might know.
-                    // The user said: "determine this from the chat name or by querying the chat type. For now, if the chatName doesn't look like a username (e.g., contains spaces or is longer than 20 chars), treat it as a group."
-                    val chatType = if (chatName.contains(" ") || chatName.length > 20) "group" else "direct"
-                    navController.navigate("chat/$chatId/$encodedName/$chatType")
+                onChatTapped = { chatId, _ ->
+                    navController.navigate("chat/$chatId")
                 },
                 onSearchTapped = {
                     navController.navigate("search")
@@ -71,9 +66,8 @@ fun DriftNavigation() {
         composable("creategroup") {
             com.example.anonymouschat.ui.screens.group.CreateGroupScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onGroupCreated = { chatId, chatName ->
-                    val encodedName = java.net.URLEncoder.encode(chatName, "UTF-8")
-                    navController.navigate("chat/$chatId/$encodedName/group") {
+                onGroupCreated = { chatId, _ ->
+                    navController.navigate("chat/$chatId") {
                         popUpTo("chatlist")
                     }
                 }
@@ -81,30 +75,22 @@ fun DriftNavigation() {
         }
 
         composable(
-            route = "chat/{chatId}/{chatName}/{chatType}",
+            route = "chat/{chatId}",
             arguments = listOf(
-                navArgument("chatId") { type = NavType.StringType },
-                navArgument("chatName") { type = NavType.StringType },
-                navArgument("chatType") { type = NavType.StringType }
+                navArgument("chatId") { type = NavType.StringType }
             )
         ) { backStackEntry ->
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
-            val encodedName = backStackEntry.arguments?.getString("chatName") ?: ""
-            val chatName = java.net.URLDecoder.decode(encodedName, "UTF-8")
-            val chatType = backStackEntry.arguments?.getString("chatType") ?: "direct"
             ChatScreen(
                 chatId = chatId,
-                chatName = chatName,
-                chatType = chatType,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
 
         composable("search") {
             SearchScreen(
-                onChatStarted = { chatId, chatName ->
-                    val encodedName = java.net.URLEncoder.encode(chatName, "UTF-8")
-                    navController.navigate("chat/$chatId/$encodedName/direct") {
+                onChatStarted = { chatId, _ ->
+                    navController.navigate("chat/$chatId") {
                         popUpTo("chatlist")
                     }
                 },

@@ -38,6 +38,20 @@ class MainActivity : ComponentActivity() {
             val settingsRepository = remember { SettingsRepository(applicationContext) }
             val isDarkMode by settingsRepository.isDarkMode.collectAsState()
 
+            // Automatically connect to Stream if user is logged in to Firebase
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+                if (user != null) {
+                    val client = io.getstream.chat.android.client.ChatClient.instance()
+                    val streamUser = io.getstream.chat.android.models.User(
+                        id = user.uid,
+                        name = user.displayName ?: "User"
+                    )
+                    // Using devToken for local testing without the Vercel bouncer
+                    client.connectUser(streamUser, client.devToken(user.uid)).enqueue()
+                }
+            }
+
             DriftTheme(darkTheme = isDarkMode) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     DriftNavigation()

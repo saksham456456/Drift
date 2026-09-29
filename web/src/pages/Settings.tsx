@@ -1,49 +1,54 @@
 import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Edit2, LogOut, ChevronRight, Trash2 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Edit2, ChevronRight, LogOut, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { db } from '../firebase';
-import { ref, update, remove, get } from 'firebase/database';
-import { getAuth, deleteUser } from 'firebase/auth';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
-// Simple deterministic color generator from string
-const stringToColor = (str: string) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-  return '#' + '000000'.substring(0, 6 - c.length) + c;
-};
-
-const Settings: React.FC = () => {
-  const { user, logout } = useAuthStore();
+const Settings = () => {
   const navigate = useNavigate();
-  
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return document.documentElement.classList.contains('dark');
-  });
-
+  const { user, logout, updateDisplayName, deleteAccount } = useAuthStore();
   const [showEditName, setShowEditName] = useState(false);
-  const [newName, setNewName] = useState(user?.displayName || '');
   const [showAbout, setShowAbout] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [newName, setNewName] = useState(user?.displayName || '');
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('darkMode') === 'true' || 
+           (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
+  
+  const userColor = React.useMemo(() => {
+    const colors = ['#2196F3', '#E91E63', '#4CAF50', '#FF9800', '#9C27B0'];
+    const charCode = user?.displayName ? user.displayName.charCodeAt(0) : 0;
+    return colors[charCode % colors.length];
+  }, [user?.displayName]);
 
   useEffect(() => {
-    setIsDarkMode(document.documentElement.classList.contains('dark'));
-  }, []);
-
-  const toggleDarkMode = () => {
-    const html = document.documentElement;
-    if (html.classList.contains('dark')) {
-      html.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-      setIsDarkMode(false);
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('darkMode', 'true');
     } else {
-      html.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-      setIsDarkMode(true);
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('darkMode', 'false');
     }
+  }, [isDarkMode]);
+
+  const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
+
+  const handleUpdateName = async () => {
+    if (newName.trim() && newName.trim() !== user?.displayName) {
+      await updateDisplayName(newName.trim());
+    }
+    setShowEditName(false);
   };
 
   const handleLogout = async () => {
@@ -51,54 +56,22 @@ const Settings: React.FC = () => {
     navigate('/login');
   };
 
-  const handleUpdateName = async () => {
-    if (!user || !newName.trim()) return;
-    try {
-      await update(ref(db, `users/${user.uid}`), {
-        displayName: newName.trim()
-      });
-      setShowEditName(false);
-      // To strictly follow, authStore might need update if we were refreshing, but firebase realtime sync usually handles it or we reload
-      window.location.reload();
-    } catch (error) {
-      console.error('Error updating name:', error);
-    }
-  };
-
   const handleDeleteAccount = async () => {
-    if (!user) return;
-    try {
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
-      
-      if (currentUser) {
-        // Remove username mapping
-        if (user.username) {
-          await remove(ref(db, `usernames/${user.username.replace('@', '')}`));
-        }
-        // Remove user data
-        await remove(ref(db, `users/${user.uid}`));
-        // Delete auth user
-        await deleteUser(currentUser);
-        // authStore will handle logout on state change
-        navigate('/login');
-      }
-    } catch (error) {
-      console.error('Error deleting account:', error);
-      alert('Failed to delete account. You may need to log in again before doing this.');
-    }
+    await deleteAccount();
+    navigate('/login');
   };
-
-  const userColor = user?.displayName ? stringToColor(user.displayName) : '#2196F3';
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col transition-colors">
-      {/* Top Bar */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center p-4">
-        <button onClick={() => navigate(-1)} className="mr-4 text-gray-700 dark:text-gray-200">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 flex items-center p-4 border-b border-gray-200 dark:border-gray-700 shadow-sm z-10">
+        <button 
+          onClick={() => navigate(-1)} 
+          className="p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-white"
+        >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Settings</h1>
+        <h1 className="ml-2 text-xl font-semibold text-gray-900 dark:text-white">Settings</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto pb-8">
@@ -121,7 +94,6 @@ const Settings: React.FC = () => {
         {/* Settings List */}
         <div className="bg-white dark:bg-gray-800 border-y border-gray-200 dark:border-gray-700">
           
-          {/* Display Name */}
           <div 
             className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750"
             onClick={() => setShowEditName(true)}
@@ -133,7 +105,6 @@ const Settings: React.FC = () => {
             <Edit2 className="w-5 h-5 text-gray-400" />
           </div>
 
-          {/* Dark Mode */}
           <div 
             className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750"
             onClick={toggleDarkMode}
@@ -147,7 +118,6 @@ const Settings: React.FC = () => {
             </button>
           </div>
 
-          {/* About */}
           <div 
             className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750"
             onClick={() => setShowAbout(true)}
@@ -156,7 +126,6 @@ const Settings: React.FC = () => {
             <ChevronRight className="w-5 h-5 text-gray-400" />
           </div>
 
-          {/* Terms of Service */}
           <Link 
             to="/terms"
             className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
@@ -165,7 +134,6 @@ const Settings: React.FC = () => {
             <ChevronRight className="w-5 h-5 text-gray-400" />
           </Link>
 
-          {/* Privacy Policy */}
           <Link 
             to="/privacy"
             className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750"
@@ -174,7 +142,6 @@ const Settings: React.FC = () => {
             <ChevronRight className="w-5 h-5 text-gray-400" />
           </Link>
 
-          {/* Delete Account */}
           <div 
             onClick={() => setShowDeleteConfirm(true)}
             className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750"
@@ -183,7 +150,6 @@ const Settings: React.FC = () => {
             <Trash2 className="w-5 h-5 text-red-500" />
           </div>
 
-          {/* Log Out */}
           <div 
             onClick={handleLogout}
             className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750"
@@ -191,7 +157,6 @@ const Settings: React.FC = () => {
             <p className="text-red-500 font-medium">Log Out</p>
             <LogOut className="w-5 h-5 text-red-500" />
           </div>
-
         </div>
 
         <div className="flex justify-center mt-8">
@@ -199,81 +164,60 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
-      {/* Edit Name Modal */}
-      {showEditName && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-sm">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Edit Display Name</h3>
-            <input
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-2 mb-4 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Display Name"
-            />
-            <div className="flex justify-end gap-2">
-              <button 
-                onClick={() => setShowEditName(false)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleUpdateName}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Save
-              </button>
+      <Dialog open={showEditName} onOpenChange={setShowEditName}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Display Name</DialogTitle>
+            <DialogDescription>
+              Make changes to your display name here. Click save when you're done.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="col-span-3"
+              />
             </div>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditName(false)}>Cancel</Button>
+            <Button onClick={handleUpdateName}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* About Modal */}
-      {showAbout && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-sm">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">About Drift</h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
+      <Dialog open={showAbout} onOpenChange={setShowAbout}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>About Drift</DialogTitle>
+            <DialogDescription>
               Drift is a distraction-free messaging app designed to help you connect with others quickly and securely.
-            </p>
-            <div className="flex justify-end">
-              <button 
-                onClick={() => setShowAbout(false)}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setShowAbout(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Delete Account Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-sm">
-            <h3 className="text-lg font-bold text-red-500 mb-2">Delete Account?</h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete Account?</DialogTitle>
+            <DialogDescription>
               Are you sure you want to delete your account? This action cannot be undone and will permanently remove your data.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button 
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleDeleteAccount}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteAccount}>Delete Account</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
